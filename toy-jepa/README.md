@@ -12,7 +12,9 @@ one piece of the world from another.
 
 ### First, look at this
 
-<img width="445" height="374" alt="image" src="https://github.com/user-attachments/assets/8646624d-84a9-463b-9d43-8f2eff814099" />
+<p align="center">
+  <img width="445" height="374" alt="High-dimensional smear of the spiral" src="assets/higher_dim.png" />
+</p>
 
 Let's run a magic trick together.
 
@@ -36,7 +38,9 @@ To test it, we need a dataset where we secretly know the right answer, so we can
 
 Meet the Swiss roll. It's a 2D spiral, and every point on it is controlled by a single hidden number t. Small t, you're at the inner tip; crank it up, you spiral outward.
 
-<img width="445" height="374" alt="image" src="https://github.com/user-attachments/assets/bc2a4916-8838-4dcc-a42c-65dac0cccdc9" />
+<p align="center">
+  <img width="445" height="374" alt="2D spiral colored by t" src="assets/heuristic_spiral.png" />
+</p>
 
 Here's the secret the dataset is built from: a spiral. Every point sits somewhere along this one curve, and its position 
 is set by a single number we'll call t. Slide t and you travel along the spiral, from the inner tip outward. That one number is the 
@@ -70,7 +74,9 @@ in the universe that lets neighbors reliably agree is the genuine structure of t
 line up. Ignore it and they don't. So the model, chasing nothing but consistency with its neighbors, gets quietly dragged toward the one representation 
 that actually reflects how the data is built.
 
-<img width="445" height="374" alt="image" src="https://github.com/user-attachments/assets/90315a72-c216-4baa-b066-870516b9bae9" />
+<p align="center">
+  <img width="445" height="374" alt="JEPA neighbor-prediction pairs along the spiral" src="assets/neighbour.png" />
+</p>
 
 
 These red arrows are that entire signal, every one is a "predict the neighbor" pair, and there is nothing else. 
@@ -88,7 +94,9 @@ nothing about what they're looking at. The rule said "agree," and the cheapest w
 
 A model handed the same task finds this shortcut almost instantly, and with none of the hesitation. Watch what it does.
 
-<img width="445" height="374" alt="image" src="https://github.com/user-attachments/assets/5c6f3a69-3d3a-4630-ab68-738bf2914971" />
+<p align="center">
+  <img width="445" height="374" alt="Representation collapse: all points crushed to a tiny blob" src="assets/representation_collapse.png" />
+</p>
 
 ### The cheat, made real
 
