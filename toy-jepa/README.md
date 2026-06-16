@@ -110,3 +110,18 @@ and gradient descent will walk straight to it every time. If we want the model t
 We need a second rule that makes "it's a thing" illegal.
 
 That rule is the clever part.
+
+## Outlawing the cheat
+
+The cheat worked because we only had one rule, and one rule is easy to game. So we add a second.
+
+The first rule still says: neighbors must agree. The new rule says: but you're forbidden from crushing everything into one point. 
+More precisely, it demands that the cloud of embeddings stay spread out and fill the space, no collapsing to a dot. Now the model is caught between two constraints. It still has to make neighbors agree, but it can no longer do that by making everyone identical, because "everyone identical" is exactly what the second rule bans.
+
+With both rules pulling at once, there's only one way out. The model has to find an arrangement where neighbors land close together and the whole cloud stays spread, and the only thing that satisfies both at once is the genuine structure of the data. Lay the spiral out as a spiral, and nearby points are naturally close while the cloud as a whole stays full. Collapse is no longer an escape hatch, it's a locked door. Cornered, the model finally learns. 
+
+But this raises an obvious question. "Stay spread out" sounds nice, but it's vague. Spread out how much? In which directions? What shape, exactly, are we demanding? Hand-wave it and the model will find a new loophole, slightly less spread here, slightly squashed there. We need to pin down "spread out" with surgical precision.
+
+The answer is one specific shape, and a hundred-year-old theorem for checking it.
+
+
