@@ -149,7 +149,7 @@ Here's the move, made concrete on a cloud of just six points in 3-D.
 
 ![Random projection of six 3-D points onto a 1-D shadow](assets/cramer_proj.png)
 
-Pick a random direction d (the black arrow). For each point, slide it straight down onto that arrow, that's the projection, literally a dot product, and read off where it lnds. Six points in 3-D become six numbers on a line. Then we ask one question of those six numbers: do they look like a bell curve, centered at zero, spread by one? Here they do. This direction passes.
+Pick a random direction d (the black arrow). For each point, slide it straight down onto that arrow, that's the projection, literally a dot product, and read off where it lands. Six points in 3-D become six numbers on a line. Then we ask one question of those six numbers: do they look like a bell curve, centered at zero, spread by one? Here they do. This direction passes.
 
 But one direction isn't a verdict, it's one shadow. And here's the theorem that makes shadows enough. Cramér-Wold (1930s) says: a cloud is a round Gaussian if and only if every one of its shadows is a 1-D bell curve. Not most shadows. Every shadow, from every angle. Check enough directions and find a bell every time, and the full high-dimensional cloud is provably round, with nowhere for a strange shape to hide.
 
@@ -161,7 +161,7 @@ It's tempting to think a few directions would do. They won't, and this figure sh
 
 This cloud is a cigar, stretched long in one direction, squashed flat in the others. Look what happens depending on where you shine the light. Project along the cigar and the shadow is way too wide (variance 4.1, the bell wants 1). Project across it and the shadow is far too narrow (variance 0.02). Same cloud, opposite verdicts, depending purely on the angle.
 
-That's the trap. A degenerate cloud can look perfectly healthy from a lucky angle and only betray itself from an unlucky one. If you checked just one or two directions, you might sample the good ones and declare victory on a broken cloud. The only safe move is to check many random directions, and to re-roll them constantly, so nothing stays hidden. This is also the cleanest way to see the difference between the two ways a cloud can go wrong: collapse is "every shadow too narrow" (the cloud is a dot), while anisotropy is "some too wide, some too narrow" (the cloud is lopsided). The round Gaussian is the only shape where every shadow looks identical.
+That's the trap. A degenerate cloud can look perfectly healthy from a lucky angle and only betray itself from an unlucky one. If you checked just one or two directions, you might sample the good ones and declare victory on a broken cloud. The only safe move is to check many random directions, and to re-roll them constantly, so nothing stays hidden. The round Gaussian is the only shape where every shadow looks identical.
 
 ### Step two: what does "looks like a bell" actually mean? (Epps-Pulley)
 
