@@ -179,9 +179,5 @@ So where does each point on that curve come from? Take each value and wrap it ar
 
 Read the bottom row. When the points are collapsed (all zero, left), they all wrap to the same spot and their average sits right on the rim, distance 1.0 from center. When they're a healthy spread (middle), they fan out around the arc and the average pulls inward to about 0.67. When they're too spread (right), they wrap all the way around the circle and cancel out, average near zero. So this one number, how far the average sits from the center, is a "clustering meter" that reactsdifferently to collapse, to healthy spread, and to over-spread. Crucially, it has a real gradient even at full collapse: the model always feels which way to move.
 
-### Putting both theorems together
 
-One circle, one frequency t, is just one note. Sweep t across a whole range and you get the fingerprint we just saw, one number per frequency, traced out as a curve.
-
-And that's the whole machine, two uniqueness theorems stacked. Cramér-Wold says match every shadow and you've matched the full cloud. The fingerprint says match every frequenc and you've matched the shadow. Put them together: shine light from many random angles, match the bell-fingerprint on each, and you've pinned the cloud to a perfect round Gaussian, with a clean, nonzero push toward it the entire way, including up out of total collapse.
 
