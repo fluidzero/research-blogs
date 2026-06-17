@@ -124,4 +124,62 @@ But this raises an obvious question. "Stay spread out" sounds nice, but it's vag
 
 The answer is one specific shape, and a hundred-year-old theorem for checking it.
 
+## The shape we demand
+
+Here's the precise version of "stay spread out": we insist the cloud of embeddings look like a standard bell-shaped cloud, a perfectly round, evenly spread blob centered at zero, the same width in every direction, with no clumps and no stretching. Basically an isotropic gaussian or a fuzzy ball.
+
+Why this exact shape? Because it's the one arrangement that plays no favorites. A perfectly round cloud commits to nothing in advance, every direction gets equal room, so whatever we later want to read out of the embedding, the information is there waiting. It's the maximally fair, maximally non-committal way to fill space, which makes it the safest target when you don't yet know what you'll need.
+
+So far so good. But now a practical nightmare: our cloud lives in dozens of dimensions. How do you check whether a blob in, say, 32-dimensional space is a perfectly round Gaussian? You can't even picture it, let alone measure it directly.
+Cramér-Wold to the rescue. The theorem says: a cloud is a round Gaussian if and only if every flat shadow it casts is a 1-D bell curve. No exceptions, nowhere for a weird shape to hide.
+
+That turns an impossible check into an easy one. Instead of measuring a 32-D blob, we pick a bunch of random directions, flatten the cloud onto each one, and ask a simple question of each shadow: do you look like a bell curve? Average up how far each shadow strays from a perfect bell, and that number becomes the second rule, the penalty that punishes any cloud that isn't round. A collapsed blob fails instantly: flatten a single point from any angle and its shadow is a spike, nothing like a bell. There's nowhere to cheat.
+
+## Read this section if you still have this question: How do you check the shape of a cloud you can't even see?
+
+We just demanded that the embedding cloud be a perfectly round Gaussian. Easy to say. But our cloud lives in dozens of dimensions, and you can't eyeball a 32-dimensional blob to see if it's round. So how do you actually check it, let alone turn the check into something a model can be trained against?
+
+The answer is a two-step trick, and each step rests on a beautiful theorem. The first handles the "too many dimensions" problem. The second handles "what does round even mean for a single direction."
+
+### Step one: shadows (Cramér-Wold)
+
+You can't see a high-dimensional cloud, but you can see its shadow. Pick any direction, shine a light through the cloud, and look at the smear it casts on a single line. That shadow is a 1-D thing you can measure.
+
+Here's the move, made concrete on a cloud of just six points in 3-D.
+
+![Random projection of six 3-D points onto a 1-D shadow](assets/cramer_proj.png)
+
+Pick a random direction d (the black arrow). For each point, slide it straight down onto that arrow, that's the projection, literally a dot product, and read off where it lnds. Six points in 3-D become six numbers on a line. Then we ask one question of those six numbers: do they look like a bell curve, centered at zero, spread by one? Here they do. This direction passes.
+
+But one direction isn't a verdict, it's one shadow. And here's the theorem that makes shadows enough. Cramér-Wold (1930s) says: a cloud is a round Gaussian if and only if every one of its shadows is a 1-D bell curve. Not most shadows. Every shadow, from every angle. Check enough directions and find a bell every time, and the full high-dimensional cloud is provably round, with nowhere for a strange shape to hide.
+
+### Why you can't skip directions
+
+It's tempting to think a few directions would do. They won't, and this figure shows exactly why.
+
+![Anisotropic cigar cloud gives wildly different shadows depending on the angle](assets/cramer_proj_iso_non_iso.png)
+
+This cloud is a cigar, stretched long in one direction, squashed flat in the others. Look what happens depending on where you shine the light. Project along the cigar and the shadow is way too wide (variance 4.1, the bell wants 1). Project across it and the shadow is far too narrow (variance 0.02). Same cloud, opposite verdicts, depending purely on the angle.
+
+That's the trap. A degenerate cloud can look perfectly healthy from a lucky angle and only betray itself from an unlucky one. If you checked just one or two directions, you might sample the good ones and declare victory on a broken cloud. The only safe move is to check many random directions, and to re-roll them constantly, so nothing stays hidden. This is also the cleanest way to see the difference between the two ways a cloud can go wrong: collapse is "every shadow too narrow" (the cloud is a dot), while anisotropy is "some too wide, some too narrow" (the cloud is lopsided). The round Gaussian is the only shape where every shadow looks identical.
+
+### Step two: what does "looks like a bell" actually mean? (Epps-Pulley)
+
+We've reduced the problem to a single, repeated question: does this 1-D shadow look like a bell curve? The obvious approach is to check a few summary numbers, mean, variance, maybe a couple more. It works, but it has a fatal flaw for training: when the cloud is fully collapsed, those summary numbers give the model no push to fix it. The penalty is high but flat, like standing at the bottom of a well with no slope to climb. The optimizer feels nothing and stays stuck.
+
+Epps-Pulley fixes this with a lovely change of perspective. Instead of summary numbers, take each value and wrap it around a circle, place the value x at angle t·x, then look at where all the points average out.
+
+![Wrapping shadow values around a circle: collapsed, healthy spread, and over-spread](assets/epps_pulley.png)
+
+Read the bottom row. When the points are collapsed (all zero, left), they all wrap to the same spot and their average sits right on the rim, distance 1.0 from center. When they're a healthy spread (middle), they fan out around the arc and the average pulls inward to about 0.67. When they're too spread (right), they wrap all the way around the circle and cancel out, average near zero. So this one number, how far the average sits from the center, is a "clustering meter" that reactsdifferently to collapse, to healthy spread, and to over-spread. Crucially, it has a real gradient even at full collapse: the model always feels which way to move.
+
+### Putting both theorems together
+
+One circle, one frequency t, is just one note. Sweep t across a whole range and you get a fingerprint of the distribution.
+
+![Fingerprint curves: target bell vs healthy, collapsed, and over-spread clouds](assets/different_spread_cramer_comp.png)
+
+The green curve is the fingerprint of a perfect bell, the target. A healthy spread (purple) hugs it. A collapsed cloud (orange) pins to the top and never comes down, the shaded gap is the penalty. An over-spread cloud (blue) plunges too fast. The penalty we actually train against is simply the total area between your fingerprint and the green one. Drive that area to zero and your shadow is provably a perfect bell, by the same uniqueness logic as before, but now in frequency space.
+
+And that's the whole machine, two uniqueness theorems stacked. Cramér-Wold says match every shadow and you've matched the full cloud. The fingerprint says match every frequenc and you've matched the shadow. Put them together: shine light from many random angles, match the bell-fingerprint on each, and you've pinned the cloud to a perfect round Gaussian, with a clean, nonzero push toward it the entire way, including up out of total collapse.
 
