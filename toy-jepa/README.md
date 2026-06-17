@@ -167,7 +167,13 @@ That's the trap. A degenerate cloud can look perfectly healthy from a lucky angl
 
 We've reduced the problem to a single, repeated question: does this 1-D shadow look like a bell curve? The obvious approach is to check a few summary numbers, mean, variance, maybe a couple more. It works, but it has a fatal flaw for training: when the cloud is fully collapsed, those summary numbers give the model no push to fix it. The penalty is high but flat, like standing at the bottom of a well with no slope to climb. The optimizer feels nothing and stays stuck.
 
-Epps-Pulley fixes this with a lovely change of perspective. Instead of summary numbers, take each value and wrap it around a circle, place the value x at angle t·x, then look at where all the points average out.
+Epps-Pulley fixes this with a lovely change of perspective. Instead of a few summary numbers, it scores a 1-D shadow as a whole curve over a range of frequencies, a kind of fingerprint, and a true bell has one specific target curve we can compare against.
+
+![Fingerprint curves: target bell vs healthy, collapsed, and over-spread clouds](assets/different_spread_cramer_comp.png)
+
+The green curve is the fingerprint of a perfect bell, the target. A healthy spread (purple) hugs it. A collapsed cloud (orange) pins to the top and never comes down, the shaded gap is the penalty. An over-spread cloud (blue) plunges too fast. The penalty we actually train against is simply the total area between your fingerprint and the green one. Drive that area to zero and your shadow is provably a perfect bell, by the same uniqueness logic as before, but now in frequency space.
+
+So where does each point on that curve come from? Take each value and wrap it around a circle, place the value x at angle t·x, then look at where all the points average out.
 
 ![Wrapping shadow values around a circle: collapsed, healthy spread, and over-spread](assets/epps_pulley.png)
 
@@ -175,11 +181,7 @@ Read the bottom row. When the points are collapsed (all zero, left), they all wr
 
 ### Putting both theorems together
 
-One circle, one frequency t, is just one note. Sweep t across a whole range and you get a fingerprint of the distribution.
-
-![Fingerprint curves: target bell vs healthy, collapsed, and over-spread clouds](assets/different_spread_cramer_comp.png)
-
-The green curve is the fingerprint of a perfect bell, the target. A healthy spread (purple) hugs it. A collapsed cloud (orange) pins to the top and never comes down, the shaded gap is the penalty. An over-spread cloud (blue) plunges too fast. The penalty we actually train against is simply the total area between your fingerprint and the green one. Drive that area to zero and your shadow is provably a perfect bell, by the same uniqueness logic as before, but now in frequency space.
+One circle, one frequency t, is just one note. Sweep t across a whole range and you get the fingerprint we just saw, one number per frequency, traced out as a curve.
 
 And that's the whole machine, two uniqueness theorems stacked. Cramér-Wold says match every shadow and you've matched the full cloud. The fingerprint says match every frequenc and you've matched the shadow. Put them together: shine light from many random angles, match the bell-fingerprint on each, and you've pinned the cloud to a perfect round Gaussian, with a clean, nonzero push toward it the entire way, including up out of total collapse.
 
