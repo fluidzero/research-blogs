@@ -179,5 +179,84 @@ So where does each point on that curve come from? Take each value and wrap it ar
 
 Read the bottom row. When the points are collapsed (all zero, left), they all wrap to the same spot and their average sits right on the rim, distance 1.0 from center. When they're a healthy spread (middle), they fan out around the arc and the average pulls inward to about 0.67. When they're too spread (right), they wrap all the way around the circle and cancel out, average near zero. So this one number, how far the average sits from the center, is a "clustering meter" that reactsdifferently to collapse, to healthy spread, and to over-spread. Crucially, it has a real gradient even at full collapse: the model always feels which way to move.
 
+## What's a linear probe?
 
+Before the reveal, one tool we need: the **linear probe**. It answers a single question, *did the encoder actually learn something useful, or does it just look good?*
+
+Here's how it works. After training, we freeze the encoder. Frozen means we stop training it, its weights never change again. Feed it an input, it gives back an embedding, and that's all it does now.
+
+To test that embedding, we bolt the simplest possible predictor on top: a single straight line. For our spiral, that means fitting a line from the embedding to `t`:
+
+```
+t_predicted = w · embedding + b
+```
+
+We find the best `w` and `b` by least squares, then measure how close the prediction lands to the real `t`. That's the whole probe. Freeze the encoder, fit one line on top, measure.
+
+### Why it has to be a *straight* line
+
+This is the part that matters. The probe is deliberately the weakest model we can build. A straight line can only do one thing, slice the embedding space with flat cuts. It can't bend, curve, or do anything clever.
+
+So if a straight line succeeds, the encoder must have already done the hard work. It must have laid the embeddings out so that `t` runs along a clean direction, readable by a flat cut. The probe didn't untangle the spiral; the encoder did, and the line just read off the result.
+
+If we used a powerful probe instead, say a deep network, we couldn't tell who did the work. Maybe the encoder was garbage and the deep probe untangled everything itself. The straight line removes that doubt. It's too dumb to fix a bad encoder, so when it works, the credit is unambiguous.
+
+### Why this doesn't break the "no labels" claim
+
+The probe does use the true `t` values, so it *is* supervised. But notice the timing. It runs only after the encoder is frozen, and it never changes the encoder. So there are two separate phases:
+
+- **Learning the representation** — unsupervised, no labels. That's JEPA.
+- **Measuring the representation** — supervised, a few labels. That's the probe.
+
+The labels grade the encoder; they don't build it. Keep those two straight and the trick stands: the model taught itself the structure, and the probe just confirms it's there.
+
+## The payoff
+
+We trained the model with both rules running at once: make neighbors agree, and stay round. The second rule blocked every shortcut the first one tempted it into. So what came out?
+
+### A cloud that's round, and still remembers
+
+![LeJEPA's final embedding: a round Gaussian cloud with t still varying smoothly across it](assets/recovered_spiral.png)
+
+Two things are true of this picture at the same time, and the whole point of the post lives in the overlap.
+
+It's round. No collapse, no cigar, no clump, just a fuzzy ball at the origin, exactly the shape we demanded.
+
+And it remembers. Look at the color: the hidden `t` we never mentioned is spread across the cloud as a smooth gradient, inner-spiral on one side, outer-spiral on the other. The model obeyed a rule about *shape* and, without being asked, kept the *geometry* of the data intact while doing it.
+
+### Cramér-Wold confirms it
+
+![Three random 1-D shadows of the trained embedding, each hugging the N(0,1) bell](assets/one_d_proj_epps.png)
+
+Don't trust the eyeball. Here are three random shadows of the trained cloud, and all three hug the bell. By the theorem we built the whole penalty out of, that settles it: if every shadow is a bell, the cloud is round. The shape rule was enforced, not just hoped for.
+
+### And the trick lands
+
+![A linear probe recovers t at R² = 0.765, versus -0.001 for the collapsed model](assets/linear_probe.png)
+
+This is the moment we promised at the very start. We freeze the model, fit a single straight line from the embedding to `t`, the dumbest readout there is, and it recovers `t` at R² = 0.765. The same line aimed at the collapsed model scores essentially zero, no better than guessing.
+
+Remember the opening: no straight cut could read `t` off the raw 50-D data, no matter how you sliced it. That hasn't changed. What changed is the data. The model didn't make `t` easier to predict, it rearranged everything so the answer was finally sitting in reach.
+
+## So what just happened?
+
+We never told the model about `t`. We never told it about the spiral. We handed it two rules, *predict your neighbor* and *don't collapse into a dot*, and let it sort itself out. What fell out, with no labels anywhere, was a representation clean enough that the simplest possible readout can pull the hidden structure straight off it.
+
+Step back and the whole thing was a tug of war between two forces:
+
+- **Predict your neighbor** pulls points that are close in the world toward the same place in the embedding. Alone, it collapses everything to a dot.
+- **Stay a round Gaussian** pushes the cloud to fill space evenly. Alone, it just makes noise.
+
+Neither force learns anything by itself. Held in tension, the only way to satisfy both at once is to lay the data out by its real structure, and so the structure emerges, unbidden. That tension *is* JEPA. The two papers behind this post, LeJEPA and its world-model sibling LeWorldModel, are largely the story of getting that second force exactly right: cheap to compute, impossible to game, with a clean gradient even from total collapse.
+
+And the recipe doesn't care that ours was a 2-D spiral. The same two pressures carry the bigger I-JEPA and V-JEPA systems through real images and video. What scales up is the encoder and the data. The mechanism is the one we just watched play out in two dimensions.
+
+## References
+
+- Balestriero, R. & LeCun, Y. (2025). *LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics.* [arXiv:2511.08544](https://arxiv.org/abs/2511.08544) · [code](https://github.com/rbalestr-lab/lejepa) — the paper this post is a toy walkthrough of. Introduces SIGReg, the isotropic-Gaussian regularizer built from Cramér-Wold + Epps-Pulley.
+- Maes, L., Le Lidec, Q., Scieur, D., LeCun, Y. & Balestriero, R. (2026). *LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels.* [arXiv:2603.19312](https://arxiv.org/abs/2603.19312) — the world-model sibling, same two-term recipe applied to next-frame prediction.
+- Assran, M. et al. (2023). *Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture (I-JEPA).* [arXiv:2301.08243](https://arxiv.org/abs/2301.08243) — the original image-scale JEPA from Meta.
+- Bardes, A., Garrido, Q., Ponce, J., Chen, X., Rabbat, M., LeCun, Y., Assran, M. & Ballas, N. (2024). *Revisiting Feature Prediction for Learning Visual Representations from Video (V-JEPA).* [arXiv:2404.08471](https://arxiv.org/abs/2404.08471) · [code](https://github.com/facebookresearch/jepa) — video-scale JEPA.
+- Cramér, H. & Wold, H. (1936). *Some theorems on distribution functions.* J. London Math. Soc. — the 90-year-old theorem that says a multivariate distribution is pinned down by all its 1-D projections.
+- Epps, T. W. & Pulley, L. B. (1983). *A test for normality based on the empirical characteristic function.* Biometrika 70(3), 723–726 — the normality test SIGReg uses on each random projection.
 
