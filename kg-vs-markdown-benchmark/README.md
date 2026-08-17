@@ -83,7 +83,14 @@ So: is the knowledge graph just expensive decoration?
 
 Extraction is *transcription*: copy every cell, faithfully. But that's not why anyone builds a knowledge graph. You build it for the moment someone stands in front of 35 documents and asks a question that lives in none of them individually.
 
-So we built a second benchmark: 28 questions over the whole corpus. We didn't write them ourselves, because benchmark authors quizzing their own system tend to ask it things it's good at. Instead, a generator derives every question from the same human-verified answer keys: take a verified fact and ask for it without naming the document; take one row out of a 7,554-row table and ask for one of its cells; aggregate verified values across filings to make counting questions; use the corrupted twin copies for duplicate detection. Questions refer to documents by content ("the Celsius filing", "the pump spec sheet"), never by filename, so *finding the right document* is part of the task. We reviewed the generated set by hand before running anything, and threw out a pair of questions whose phrasing tested the annotators' interpretation rather than what the documents actually say.
+So we built a second benchmark: 28 questions over the whole corpus. We didn't write them ourselves, because benchmark authors quizzing their own system tend to ask it things it's good at. Instead, a generator derives every question from the same human-verified answer keys, in four flavors:
+
+- **Lookup (16):** pick a verified scalar field from one document's gold and ask for it, referring to the document only by content descriptors (title, manufacturer, debtor, case number), never by filename, so locating the document is part of the task.
+- **Row needle (4):** pick one row out of the big legal gold tables (e.g. one creditor among 7,554) and ask for one of its cells, addressed by the row's name.
+- **Cross-document (4):** compute an aggregate across the golds (distinct counts, max/min holder, "how many filings have X"): answers no single document contains.
+- **Duplicate detection (4):** exploit the dataset's deliberately corrupted twin copies and ask which documents appear twice.
+
+We reviewed the generated set by hand before running anything, and threw out a pair of questions whose phrasing tested the annotators' interpretation rather than what the documents actually say.
 
 We also invited the industry default for this problem to compete: top-k RAG. Embed the pages, retrieve the best eight, answer from those.
 
