@@ -1,10 +1,10 @@
 # We Benchmarked Our Own Knowledge Graph Against "Just Paste It Into an LLM". It Lost Half the Time.
 
-*Two controlled benchmarks, 217 runs, no LLM judges — and an honest map of where the fancy machinery earns its keep, and where the dumb baseline is simply correct.*
+*Two controlled benchmarks, 217 runs, no LLM judges. An honest map of where the fancy machinery earns its keep, and where the dumb baseline is simply correct.*
 
 Let's start with a confession.
 
-At [FluidZero](https://www.fluidzero.ai/), we spent months building a knowledge-graph pipeline for documents. Parse every PDF into a structural graph — pages, sections, tables, bounding boxes. Run an ontology-constrained extraction pass so every entity, every relation, every mention lands in a typed graph, grounded to the exact region of the exact page it came from. Then put an agent on top that navigates all of it.
+At [FluidZero](https://www.fluidzero.ai/), we spent months building a knowledge graph pipeline for documents. Parse every PDF into a structural graph of pages, sections, tables and bounding boxes. Run an ontology-constrained extraction pass so every entity, every relation, every mention lands in a typed graph, grounded to the exact region of the exact page it came from. Then put an agent on top that navigates all of it.
 
 It's a lot of machinery. And the whole time we were building it, there was a voice in the back of the room asking the question every over-engineered system deserves:
 
@@ -14,14 +14,14 @@ Most teams answer that question with vibes. We decided to answer it with a bench
 
 ## The rules: no judges, no mercy
 
-We took 35 real documents — bankruptcy filings, price lists, spec sheets, purchase orders, earnings decks — from a public benchmark ([ExtractBench](https://huggingface.co/datasets/llamaindex/ExtractBench)) that ships something precious: **human-verified correct answers** for every document, down to the page where each fact lives.
+We took 35 real documents (bankruptcy filings, price lists, spec sheets, purchase orders, earnings decks) from a public benchmark, [ExtractBench](https://huggingface.co/datasets/llamaindex/ExtractBench), which ships something precious: **human-verified correct answers** for every document, down to the page where each fact lives.
 
 That let us set two rules we refused to break:
 
-1. **No LLM judges.** Every score in this post comes from deterministic comparison — string matching, numeric tolerance, table-row alignment. Run the scorer twice, get identical numbers. No "GPT thought the answer looked right."
+1. **No LLM judges.** Every score in this post comes from deterministic comparison: string matching, numeric tolerance, table row alignment. Run the scorer twice, get identical numbers. No "GPT thought the answer looked right."
 2. **Same model everywhere.** Every system under test runs the same Claude model. When one wins, it's the *architecture* winning, never the model.
 
-Then we lined up the contenders. For extraction (PDF + schema → filled JSON): single-shot markdown, an agent over the structural graph, and the full knowledge-graph agent. For corpus Q&A: top-k RAG, the structural agent, and the KG agent with entity resolution on and off.
+Then we lined up the contenders. For extraction (turn a PDF and a schema into filled JSON): single-shot markdown, an agent over the structural graph, and the full knowledge graph agent. For corpus Q&A: top-k RAG, the structural agent, and the KG agent with entity resolution on and off.
 
 ## First, let me show you the wall
 
@@ -51,13 +51,13 @@ In practice, that's the difference between "paste the invoice into ChatGPT works
 
 ## Extraction, round one: the baseline humbles us
 
-On small documents — 2-page price lists, spec sheets, purchase orders — here's the score (unified value F1, higher is better):
+On small documents (2-page price lists, spec sheets, purchase orders), here's the score (unified value F1, higher is better):
 
 | | single-shot markdown | structural agent | KG agent |
 |---|---|---|---|
 | short docs (n=20) | **0.958** | 0.948 | 0.929 |
 
-A tie. On easy documents, one model call over parsed text matches everything we built, at a tenth the cost, in a tenth the time. We ran a needle-in-haystack addendum — find scattered facts in 20–40 page decks — and it got worse: single-shot **won outright** (0.932 vs ~0.80). When the document fits in the context window, attention is global; every fact is one attention hop away. An agent navigating page by page is just adding steps that can go wrong. And they did.
+A tie. On easy documents, one model call over parsed text matches everything we built, in a fraction of the time. We ran a needle-in-a-haystack addendum, finding scattered facts in decks of 20 to 40 pages, and it got worse: single-shot **won outright** (0.932 vs roughly 0.80). When the document fits in the context window, attention is global; every fact is one attention hop away. An agent navigating page by page is just adding steps that can go wrong. And they did.
 
 If we'd stopped here, the conclusion would have been brutal: months of graph engineering, matched by a for-loop and a prompt.
 
@@ -65,15 +65,15 @@ We did not stop here.
 
 ## Extraction, round two: the wall gets its revenge
 
-Then come the realistic tables — 17 to 27-page filings whose answers are 200–250 rows:
+Then come the realistic tables: filings of 17 to 27 pages whose answers run 200 to 250 rows.
 
 | | single-shot markdown | structural agent | KG agent |
 |---|---|---|---|
 | medium legal docs (n=4) | 0.405 | **0.864** | 0.841 |
 
-Single-shot doesn't lose gracefully here. It hits the output wall and returns fragments or nothing. The agents recovered **100% of table rows on every one of these documents** — including the deliberately corrupted, rotated-scan copies — because they never try to emit 20,000 tokens at once. They walk the table and report ~20 rows per tool call, and *our code* assembles the answer outside the model. The memory lives in the harness, not the context window.
+Single-shot doesn't lose gracefully here. It hits the output wall and returns fragments or nothing. The agents recovered **100% of table rows on every one of these documents**, including the deliberately corrupted, rotated-scan copies, because they never try to emit 20,000 tokens at once. They walk the table and report ~20 rows per tool call, and *our code* assembles the answer outside the model. The memory lives in the harness, not the context window.
 
-But notice which agent won. The *structural* one. The knowledge graph — the semantic layer, the entities, the typed relations — added **nothing** to extraction. Anywhere. On the FTX monster it was actually worst of all, and here's the irony that kept us honest: at ingest time, our pipeline had *already extracted all 3,379 creditors from that document into the graph*. The answer was sitting in Neo4j. The extraction agent recovered 99 rows of it, because we never built it a bulk-export tool. The data was there. The door wasn't.
+But notice which agent won. The *structural* one. The knowledge graph itself, the semantic layer with its entities and typed relations, added **nothing** to extraction. Anywhere. On the FTX monster it was actually worst of all, and here's the irony that kept us honest: at ingest time, our pipeline had *already extracted all 3,379 creditors from that document into the graph*. The answer was sitting in Neo4j. The extraction agent recovered 99 rows of it, because we never built it a bulk export tool. The data was there. The door wasn't.
 
 ![Extraction F1 by document stratum: single-shot wins short docs and needle tasks, agents double it on 200-row tables, everyone fails the 7,500-row monsters](assets/extraction_f1.png)
 
@@ -81,9 +81,11 @@ So: is the knowledge graph just expensive decoration?
 
 ## Round three: ask a different question
 
-Extraction is *transcription* — copy every cell, faithfully. But that's not why anyone builds a knowledge graph. You build it for the moment someone stands in front of 35 documents and asks a question that lives in none of them individually.
+Extraction is *transcription*: copy every cell, faithfully. But that's not why anyone builds a knowledge graph. You build it for the moment someone stands in front of 35 documents and asks a question that lives in none of them individually.
 
-So we built a second benchmark: 28 questions over the whole corpus, generated from those same human-verified answers. Find one fact without being told which document holds it. Find one creditor **among 7,554**. Count things across documents. Spot duplicates. And we invited the industry-default answer to this problem — top-k RAG (embed the pages, retrieve the best 8, answer from those) — to compete.
+So we built a second benchmark: 28 questions over the whole corpus. We didn't write them ourselves, because benchmark authors quizzing their own system tend to ask it things it's good at. Instead, a generator derives every question from the same human-verified answer keys: take a verified fact and ask for it without naming the document; take one row out of a 7,554-row table and ask for one of its cells; aggregate verified values across filings to make counting questions; use the corrupted twin copies for duplicate detection. Questions refer to documents by content ("the Celsius filing", "the pump spec sheet"), never by filename, so *finding the right document* is part of the task. We reviewed the generated set by hand before running anything, and threw out a pair of questions whose phrasing tested the annotators' interpretation rather than what the documents actually say.
+
+We also invited the industry default for this problem to compete: top-k RAG. Embed the pages, retrieve the best eight, answer from those.
 
 | answer accuracy | RAG | structural agent | KG agent |
 |---|---|---|---|
@@ -97,30 +99,30 @@ So we built a second benchmark: 28 questions over the whole corpus, generated fr
 
 ![Corpus discovery accuracy by question category: KG agent leads overall at 0.86, RAG scores zero on cross-document counting](assets/discovery_accuracy.png)
 
-Read the RAG column again. **Zero** on cross-document counting. Not "needs tuning" zero — *architectural* zero. "How many filings name FTX as the debtor?" is a property of the whole set. No individual chunk contains it, so no similarity search can retrieve it. You cannot count documents you never fetched. RAG answered a question about 35 documents while looking at 8, with predictable results.
+Read the RAG column again. **Zero** on cross-document counting. Not a "needs tuning" zero. An *architectural* zero. "How many filings name FTX as the debtor?" is a property of the whole set. No individual chunk contains it, so no similarity search can retrieve it. You cannot count documents you never fetched. RAG answered a question about 35 documents while looking at 8, with predictable results.
 
-And the knowledge graph? Best accuracy. Best citations. Perfect on the needle — asked for one creditor's details out of 7,554, `link_entities("CHECKR.COM")` went straight to the grounded mention, page 20, verbatim quote attached, while RAG shrugged: *"not found in the retrieved pages."* And here's my favorite number in the whole study: the KG agent was **faster** than the same agent without the graph. An entity index replaces page-walking. The fancy machinery was simultaneously more accurate, better grounded, and cheaper. On this terrain, there was no trade-off to agonize over.
+And the knowledge graph? Best accuracy. Best citations. Perfect on the needle. Asked for one creditor's details out of 7,554, `link_entities("CHECKR.COM")` went straight to the grounded mention on page 20 with the verbatim quote attached, while RAG shrugged: *"not found in the retrieved pages."* And here's my favorite number in the whole study: the KG agent was **faster** than the same agent without the graph. An entity index replaces page walking. The fancy machinery was simultaneously more accurate, better grounded, and quicker. On this terrain, there was no trade-off to agonize over.
 
-Same graph. Losing transcription, winning location. That's not a contradiction — it's the finding. A knowledge graph doesn't store verbatim table cells; it stores *where things are and how they connect*. Ask it to photocopy a document and it adds hops. Ask it to *find* something and it is the index everything else wishes it had.
+Same graph. Losing transcription, winning location. That's not a contradiction. That's the finding. A knowledge graph doesn't store verbatim table cells; it stores *where things are and how they connect*. Ask it to photocopy a document and it adds hops. Ask it to *find* something and it is the index everything else wishes it had.
 
 ## The part nobody's baseline can fake
 
 One more column deserves its own paragraph: citations.
 
-Only the agentic pipeline could ever say *"this number came from page 20 — here's the quote, here's the box."* Every markdown and RAG baseline scored approximately **zero** on verifiable provenance, at every accuracy level, in both benchmarks. And this isn't a formatting gap. Provenance is a *verification loop*: you need source coordinates that survived parsing, a contract that forces every claim to carry its source, and a tool that re-reads the cited page to check the quote is really there — *before* answering. Single-shot can't re-read anything; its generation is already over. You can prompt it to print page numbers, sure. You'll get numbers. They'll be exactly as hallucinated as anything else it prints.
+Only the agentic pipeline could ever say *"this number came from page 20; here's the quote, here's the box."* Every markdown and RAG baseline scored approximately **zero** on verifiable provenance, at every accuracy level, in both benchmarks. And this isn't a formatting gap. Provenance is a *verification loop*: you need source coordinates that survived parsing, a contract that forces every claim to carry its source, and a tool that re-reads the cited page to check the quote is really there, all *before* answering. Single-shot can't re-read anything; its generation is already over. You can prompt it to print page numbers, sure. You'll get numbers. They'll be exactly as hallucinated as anything else it prints.
 
-If what you're selling is *trustworthy* answers — audit, legal, compliance, diligence — the cheap baselines don't lose on this axis. They never entered.
+If what you're selling is *trustworthy* answers (audit, legal, compliance, diligence), the cheap baselines don't lose on this axis. They never entered.
 
 ## What we actually learned
 
-The two weeks and roughly $15 of external spend bought us a routing table instead of an argument:
+What we walked away with is a routing table instead of an argument:
 
-- **Small output, single fact?** Paste it into the LLM. Genuinely. It wins or ties at a tenth of the cost, and any architecture that routes an invoice through an agent loop is burning money.
-- **Output bigger than ~15k tokens?** Only agentic chunked extraction survives the wall. Nothing else works at any price.
+- **Small output, single fact?** Paste it into the LLM. Genuinely. It wins or ties, and any architecture that routes an invoice through an agent loop is wasting everyone's time.
+- **Output bigger than ~15k tokens?** Only agentic chunked extraction survives the wall. Nothing else works.
 - **Thousand-row tables?** Nothing LLM-shaped works. That's a deterministic export job wearing an AI costume.
-- **Questions across a corpus? Needles in huge tables? "Show me where this came from"?** The knowledge graph — more accurate, better grounded, and faster than agency without it. And RAG, the default answer, is structurally blind to half of these questions.
+- **Questions across a corpus? Needles in huge tables? "Show me where this came from"?** The knowledge graph: more accurate, better grounded, and faster than the same agent without it. And RAG, the default answer, is structurally blind to half of these questions.
 
-The graph didn't need to win everywhere. It needed to know where it wins — and now it does, with numbers instead of vibes attached.
+The graph didn't need to win everywhere. It needed to know where it wins, and now it does, with numbers instead of vibes attached.
 
 The open edges are real and named: entity resolution never got tested on a corpus with genuinely messy naming, page-level citation scoring needs work, one model, modest n. But the continents are drawn. Full methodology, prompts, per-run artifacts, and all 217 runs are in the [whitepaper](./WHITEPAPER.md) if you want to check our math.
 
