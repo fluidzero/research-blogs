@@ -189,7 +189,7 @@ PDF → Reducto parse (canonical per-page text + layout blocks, Mongo `page_pars
 cross-document leakage (an arm can never ground doc X's answer in doc Y). Cross-project
 SAME_AS entity resolution was **disabled** (`INTEL_ER_ENABLED=0`) for the same reason.
 Content-hash dedup means each PDF was Reducto-parsed exactly once regardless of retries.
-Scale: 616 parsed pages, ~616 Reducto credits (≈ $9). For the FTX doc alone the semantic KG
+Scale: 616 parsed pages. For the FTX doc alone the semantic KG
 extracted **3,388 entities** (3,379 typed `Party`, the creditors).
 
 ### 4.2 Model & runners
@@ -426,7 +426,7 @@ outperformed page-walking there), so KG retrieval does help *relative to blind n
 (b) both agents still lose to simply reading everything at once. Grounding remains
 agents-only (0.28 vs 0.000).
 
-### 7.8 Cost & latency (medians by class)
+### 7.8 Latency (medians by class)
 
 | doc class | A | B | C |
 |---|---|---|---|
@@ -434,8 +434,8 @@ agents-only (0.28 vs 0.000).
 | medium | ~7 min (when it works) | ~11–13 min | ~10–14 min |
 | long (114 pp) | ~5–27 min | ~5–28 min | ~12–60 min |
 
-Total study cost: ~616 Reducto credits (≈$9), <$5 Gemini (enrichment at ingest), ~9 hours of
-subscription agent time spread across rate-limit windows. Judging cost: $0 (deterministic).
+Agent runs totaled roughly 9 hours of wall-clock compute spread across rate-limit windows.
+Scoring adds nothing: it is deterministic, with no judge calls.
 
 ---
 
@@ -737,8 +737,8 @@ architecture: single-shot for small outputs and single facts; agentic chunked ex
 above the output cliff; the KG agent for anything corpus-level or needle-shaped; the
 agentic path whenever citations are required; deterministic export for giant tables. Every
 one of those clauses is backed by a number in this document rather than an opinion, which
-was the entire point of running the experiment: two weeks and roughly $15 of external
-spend converted an architectural debate into a routing table.
+was the entire point of running the experiment: two weeks of measurement converted an
+architectural debate into a routing table.
 
 ### 16.1 Mechanisms: why these results happened
 
