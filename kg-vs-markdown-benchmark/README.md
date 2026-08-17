@@ -131,6 +131,6 @@ What we walked away with is a routing table instead of an argument:
 
 The graph didn't need to win everywhere. It needed to know where it wins, and now it does, with numbers instead of vibes attached.
 
-The open edges are real and named: entity resolution never got tested on a corpus with genuinely messy naming, page-level citation scoring needs work, one model, modest n. But the continents are drawn. Full methodology, prompts, per-run artifacts, and all 217 runs are in the [whitepaper](./WHITEPAPER.md) if you want to check our math.
+The open edges are real and named: entity resolution never got tested on a corpus with genuinely messy naming, page-level citation scoring needs work, one model, modest n. But the continents are drawn. Full methodology, prompts, per-run artifacts, and all 217 runs are in the [whitepaper](https://github.com/fluidzero/research-blogs/blob/main/kg-vs-markdown-benchmark/WHITEPAPER.md) if you want to check our math.
 
 We'd suggest you do. That's rather the point.
